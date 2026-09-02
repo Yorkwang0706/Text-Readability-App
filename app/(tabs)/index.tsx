@@ -1,98 +1,224 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useState } from "react";
+import {
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+const API_URL = "https://bald-finished-merely-gamecube.trycloudflare.com";
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [text, setText] = useState("");
+  const [result, setResult] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const predictReadability = async () => {
+    if (!text.trim()) {
+      setResult("Please enter some text first.");
+      return;
+    }
+
+    const wordCount = text.trim().split(/\s+/).length;
+
+    if (wordCount < 100) {
+      setResult("Please enter at least 100 words.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setResult(null);
+
+      const response = await fetch(`${API_URL}/predict`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: text,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Prediction failed.");
+      }
+
+      const data = await response.json();
+
+      setResult(data.bt_easiness.toFixed(3));
+    } catch (error) {
+      console.error(error);
+
+      setResult(
+        "Unable to connect to the readability model."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Text Readability</Text>
+
+          <Text style={styles.subtitle}>
+            Paste a text below to predict its readability level.
+          </Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.label}>Text</Text>
+
+          <TextInput
+            style={styles.input}
+            multiline
+            value={text}
+            onChangeText={setText}
+            placeholder="Paste your text here..."
+            placeholderTextColor="#9CA3AF"
+            textAlignVertical="top"
+          />
+
+          <Text style={styles.characterCount}>
+            {text.length} characters
+          </Text>
+
+          <TouchableOpacity
+            style={styles.button}
+            onPress={predictReadability}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>
+              {loading
+                ? "Predicting..."
+                : "Predict Readability"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {result && (
+          <View style={styles.resultCard}>
+            <Text style={styles.resultLabel}>
+              Predicted BT Easiness
+            </Text>
+
+            <Text style={styles.result}>
+              {result}
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F5F7FA",
   },
-  stepContainer: {
-    gap: 8,
+
+  container: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 40,
+  },
+
+  header: {
+    marginBottom: 32,
+  },
+
+  title: {
+    fontSize: 34,
+    fontWeight: "700",
+    color: "#172033",
+    marginBottom: 10,
+  },
+
+  subtitle: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: "#667085",
+  },
+
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: "#000000",
+    shadowOpacity: 0.06,
+    shadowRadius: 15,
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    elevation: 3,
+  },
+
+  label: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#344054",
+    marginBottom: 10,
+  },
+
+  input: {
+    minHeight: 220,
+    borderWidth: 1,
+    borderColor: "#D0D5DD",
+    borderRadius: 14,
+    padding: 16,
+    fontSize: 16,
+    lineHeight: 24,
+    color: "#101828",
+    backgroundColor: "#FFFFFF",
+  },
+
+  characterCount: {
+    marginTop: 8,
+    marginBottom: 18,
+    textAlign: "right",
+    fontSize: 13,
+    color: "#98A2B3",
+  },
+
+  button: {
+    backgroundColor: "#5982A3",
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+
+  buttonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  resultCard: {
+    marginTop: 24,
+    backgroundColor: "#EAF2F8",
+    borderRadius: 20,
+    padding: 22,
+    alignItems: "center",
+  },
+
+  resultLabel: {
+    fontSize: 14,
+    color: "#667085",
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+
+  result: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#365F7D",
   },
 });

@@ -1,0 +1,18 @@
+# Large training/model files
+fasttext.model
+fasttext.model.wv.vectors_ngrams.npy
+embedding_scaler.pkl
+kmeans_model.pkl
+
+# Training data
+CLEAR0130.xlsx
+
+# Training script
+train_model.py
+
+# Python cache
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
