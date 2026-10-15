@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 
-const API_URL = "https://bald-finished-merely-gamecube.trycloudflare.com";
+const API_URL = "https://text-readability-app.onrender.com";
 
 export default function HomeScreen() {
   const [text, setText] = useState("");
