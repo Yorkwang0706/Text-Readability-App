@@ -44,18 +44,18 @@ export default function HomeScreen() {
       });
 
       if (!response.ok) {
-        throw new Error("Prediction failed.");
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.detail || `Prediction failed (HTTP ${response.status}).`);
       }
 
       const data = await response.json();
-
+      if (typeof data.bt_easiness !== "number") {
+        throw new Error("The API returned an unexpected prediction result.");
+      }
       setResult(data.bt_easiness.toFixed(3));
     } catch (error) {
       console.error(error);
-
-      setResult(
-        "Unable to connect to the readability model."
-      );
+      setResult(error instanceof Error ? error.message : "Unable to connect to the readability model.");
     } finally {
       setLoading(false);
     }

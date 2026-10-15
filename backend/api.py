@@ -4,6 +4,7 @@ import joblib
 import nltk
 import numpy as np
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from nltk.tokenize import word_tokenize
 from readability import Readability
@@ -70,6 +71,14 @@ def create_features(text):
 
 app = FastAPI(
     title="Text Readability API"
+)
+
+# Allow the public Vercel web frontends to call this API from a browser.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"https://[a-zA-Z0-9-]+\.vercel\.app",
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type"],
 )
 
 
